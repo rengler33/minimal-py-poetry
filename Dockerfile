@@ -3,8 +3,6 @@
 # would push this part to a registry
 FROM python:3.9 as base-python-poetry
 
-# poetry will respect POETRY_VIRTUALENVS_PATH as install location for venvs
-# unless venv is already activated, in which case it will install there instead
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=off \
@@ -13,22 +11,17 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_VERSION=1.1.13 \
     POETRY_HOME="/opt/poetry" \
     PYTHONPATH=/application_root \
-    POETRY_VIRTUALENVS_PATH="/venvs" \
     VIRTUAL_ENVIRONMENT_PATH="/venvs/venv"
 
 ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENVIRONMENT_PATH/bin:$PATH"
 
-# https://python-poetry.org/docs/#osx--linux--bashonwindows-install-instructions
-RUN apt-get update \
-    && apt-get install --no-install-recommends -y \
-        build-essential \
-        curl \
-    && curl -sSL https://raw.githubusercontent.com/sdispater/poetry/master/get-poetry.py | python - \
-    && apt-get purge --auto-remove -y \
-      build-essential \
-      curl
+# new installer for poetry, "install-poetry.py" instead of old "get-poetry.py"
+# https://python-poetry.org/docs/master/#installing-with-the-official-installer
+RUN curl -sSL https://install.python-poetry.org | python3 -
 
+# create virtual environment that will serve as base for all other installs
 RUN python3 -m venv $VIRTUAL_ENVIRONMENT_PATH
+
 
 # #### BASE-IMAGE #### #
 # has non-dev python requirements installed
@@ -37,6 +30,7 @@ FROM base-python-poetry as base-image
 WORKDIR /application_root
 
 # install [tool.poetry.dependencies]
+# activate virtual environment first so poetry installs there
 COPY ./poetry.lock ./pyproject.toml /application_root/
 RUN ["/bin/bash", "-c", "source $VIRTUAL_ENVIRONMENT_PATH/bin/activate && poetry install --no-interaction --no-root --no-dev"]
 
@@ -44,7 +38,11 @@ RUN ["/bin/bash", "-c", "source $VIRTUAL_ENVIRONMENT_PATH/bin/activate && poetry
 # #### DEVELOPMENT-IMAGE #### #
 FROM base-image as development-image
 
+# seems to help VS Code find the virtual environment even if venv wasn't made by poetry
+ENV POETRY_VIRTUALENVS_PATH="/venvs"
+
 # install [tool.poetry.dev-dependencies]
+# activate virtual environment first so poetry installs there
 RUN ["/bin/bash", "-c", "source $VIRTUAL_ENVIRONMENT_PATH/bin/activate && poetry install --no-interaction --no-root"]
 
 COPY . /application_root/
@@ -55,11 +53,12 @@ CMD ["/bin/bash"]
 
 # #### PRODUCTION-IMAGE #### #
 # uses a smaller version of python image and doesn't need poetry
-# instead copies venv from when poetry made it in base-image
+# instead copies venv from base-image
 FROM python:3.9-slim as production-image
-WORKDIR /application_root
 
-ENV PYTHONPATH=/application_root
+WORKDIR /application_root
+ENV PYTHONPATH=/application_root \
+    VIRTUAL_ENVIRONMENT_PATH="/venvs/venv"
 
 # assumes base-image created venv in a folder in this location
 COPY --from=base-image /venvs /venvs
