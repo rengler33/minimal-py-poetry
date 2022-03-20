@@ -4,6 +4,7 @@
 FROM python:3.9 as base-python-poetry
 
 # poetry will respect POETRY_VIRTUALENVS_PATH as install location for venvs
+# unless venv is already activated, in which case it will install there instead
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=off \
@@ -12,7 +13,8 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_VERSION=1.1.13 \
     POETRY_HOME="/opt/poetry" \
     PYTHONPATH=/application_root \
-    POETRY_VIRTUALENVS_PATH="/venvs"
+    POETRY_VIRTUALENVS_PATH="/venvs" \
+    VIRTUAL_ENVIRONMENT_PATH="/venvs/venv"
 
 ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENVIRONMENT_PATH/bin:$PATH"
 
@@ -26,6 +28,7 @@ RUN apt-get update \
       build-essential \
       curl
 
+RUN python3 -m venv $VIRTUAL_ENVIRONMENT_PATH
 
 # #### BASE-IMAGE #### #
 # has non-dev python requirements installed
@@ -35,14 +38,14 @@ WORKDIR /application_root
 
 # install [tool.poetry.dependencies]
 COPY ./poetry.lock ./pyproject.toml /application_root/
-RUN poetry install --no-interaction --no-root --no-dev
+RUN ["/bin/bash", "-c", "source $VIRTUAL_ENVIRONMENT_PATH/bin/activate && poetry install --no-interaction --no-root --no-dev"]
 
 
 # #### DEVELOPMENT-IMAGE #### #
 FROM base-image as development-image
 
 # install [tool.poetry.dev-dependencies]
-RUN poetry install --no-interaction --no-root
+RUN ["/bin/bash", "-c", "source $VIRTUAL_ENVIRONMENT_PATH/bin/activate && poetry install --no-interaction --no-root"]
 
 COPY . /application_root/
 # alternatively, you can set a volume mount to /application_root/
@@ -66,6 +69,6 @@ COPY ./app /application_root/app/
 
 # TODO
 # somehow need to make a script that activates the venv copied above
-# tricky part is that poetry gives the folder a weird name
+# now folder is /venvs/venv
 
 CMD ["/bin/bash"]
