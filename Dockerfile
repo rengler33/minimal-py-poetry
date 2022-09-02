@@ -1,27 +1,29 @@
 # #### BASE-PYTHON-POETRY ####
 # has python and poetry installed
 # would push this part to a registry
-FROM python:3.9 as base-python-poetry
+FROM python:3.10 as base-python-poetry
 
+# poetry will install into an isolated directory via POETRY_HOME
+# so that poetry's dependencies do not conflict
 # poetry will use VIRTUAL_ENV to check if it should install into there instead (so it does)
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/application_root \
     PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
     PIP_DEFAULT_TIMEOUT=100 \
-    POETRY_VERSION=1.1.13 \
-    POETRY_HOME="/opt/poetry" \
-    PYTHONPATH=/application_root \
+    POETRY_VERSION=1.2.0 \
+    POETRY_HOME="/tmp/poetry" \
     VIRTUAL_ENV="/venvs/venv"
-
-ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENV/bin:$PATH"
 
 # new installer for poetry, "install-poetry.py" instead of old "get-poetry.py"
 # https://python-poetry.org/docs/master/#installing-with-the-official-installer
 RUN curl -sSL https://install.python-poetry.org | python3 -
+ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENV/bin:$PATH"
 
 # create virtual environment that will serve as base for all other installs
 RUN python3 -m venv $VIRTUAL_ENV
+
 
 
 # #### BASE-IMAGE #### #
@@ -35,26 +37,44 @@ COPY ./poetry.lock ./pyproject.toml /application_root/
 # VIRTUAL_ENV is used in base-python-poetry to specify a venv location that is put on path (with /bin)
 # poetry therefore thinks it needs to install there instead of create new environment
 
-# install [tool.poetry.dependencies]
-RUN poetry install --no-interaction --no-root --no-dev
+# install [tool.poetry.dependencies] without dev dependencies or application
+RUN poetry install --no-interaction --no-root --only main
+
 
 
 # #### DEVELOPMENT-IMAGE #### #
 FROM base-image as development-image
 
-# install [tool.poetry.dev-dependencies]
+# install all dependencies
+# --no-root installs only the dependencies, for better build caching
 RUN poetry install --no-interaction --no-root
 
 COPY . /application_root/
-# alternatively, you can set a volume mount to /application_root/
+# will probably set a volume mount to /application_root/ for dev
+
+# followed by another install for the app code
+RUN poetry install --no-interaction --only main
 
 CMD ["/bin/bash"]
+
+
+
+# #### PRE-PRODUCTION-IMAGE #### #
+# uses poetry to install the application (the project's package)
+# NOT CLEAR IF THIS STEP IS NEEDED AT ALL, app seems to do imports fine without?
+FROM base-image as pre-production-image
+# install for app code (dependencies already installed)
+# seems to work even though code isn't copied there yet
+# but shouldn't I need to at least create the /app directory?
+# or do the app imports in code work because PYTHONPATH is set?
+RUN poetry install --no-interaction --only main
+
 
 
 # #### PRODUCTION-IMAGE #### #
 # uses a smaller version of python image and doesn't need poetry
 # instead copies venv from base-image
-FROM python:3.9-slim as production-image
+FROM python:3.10-slim as production-image
 
 WORKDIR /application_root
 ENV PYTHONPATH=/application_root \
@@ -64,7 +84,7 @@ ENV PYTHONPATH=/application_root \
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # assumes base-image created venv in a folder in this location
-COPY --from=base-image /venvs /venvs
+COPY --from=pre-production-image /venvs /venvs
 
 # copies only application code required for production
 COPY ./app /application_root/app/
