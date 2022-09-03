@@ -42,8 +42,13 @@ WORKDIR /application_root
 # VIRTUAL_ENV is used in base-python stage to specify a venv location that is put on path (with /bin)
 # poetry therefore thinks it needs to install there instead of create new environment
 
+# mount cache helps prevent re-downloading of ALL deps when only one dep changed
+# TODO haven't verified that this works as expected
+
 # install [tool.poetry.dependencies] without dev dependencies or application
-RUN poetry install --no-root --only main
+RUN --mount=type=cache,target=/home/.cache/pypoetry/cache \
+    --mount=type=cache,target=/home/.cache/pypoetry/artifacts \
+    poetry install --no-root --only main
 
 
 
@@ -52,7 +57,9 @@ FROM base-build as development-image
 
 # install all dependencies
 # --no-root installs only the dependencies, for better build caching
-RUN poetry install --no-root
+RUN --mount=type=cache,target=/home/.cache/pypoetry/cache \
+    --mount=type=cache,target=/home/.cache/pypoetry/artifacts \
+    poetry install --no-root
 
 COPY . /application_root/
 
