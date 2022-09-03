@@ -43,9 +43,11 @@ The approach used in this `Dockerfile` relies on #1 (setting `VIRTUAL_ENV` so po
 ### Development
 
 `docker compose build`
+
 `docker compose up`
 
 ### Production
 
 `docker build . -t app`
+
 `docker run -it -p 0.0.0.0:8000:8000 app`
