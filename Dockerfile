@@ -19,8 +19,7 @@ ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENV/bin:$PATH"
 
 
 # #### BASE-IMAGE #### #
-# has non-dev python requirements installed
-# would actually pull from registry rather than base-python-poetry in same file
+# has poetry and non-dev python requirements installed
 FROM base-python as base-build
 
 # install poetry dependencies
@@ -75,14 +74,14 @@ RUN poetry install --only main
 
 # #### PRODUCTION-IMAGE #### #
 # uses a smaller version of python image and doesn't need poetry
-# instead copies venv from base-image
+# instead copies venv from pre-production-build
 FROM python:3.10-alpine as production-image
 
 ENV VIRTUAL_ENV="/venvs/venv"
 # put the virtual env at front of path so it doesn't need to be activated
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
-# assumes base-image created venv in a folder in this location
+# assumes base-build created venv in a folder in this location
 COPY --from=pre-production-build /venvs /venvs
 
 # copies only application code required for production
