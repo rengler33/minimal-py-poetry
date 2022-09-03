@@ -1,2 +1,2 @@
-def print_something():
-    print("hello world!")
+def get_message():
+    return "hello world!"

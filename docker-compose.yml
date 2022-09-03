@@ -5,5 +5,7 @@ services:
       context: .
       dockerfile: Dockerfile
       target: development-image
+    ports:
+    - "8000:8000"
     volumes:
       - .:/application_root

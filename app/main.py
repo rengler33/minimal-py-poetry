@@ -1,6 +1,10 @@
-import requests
+from fastapi import FastAPI
 
-from app.utils import print_something
+from app.utils import get_message
 
-hi = {"asdf": "kasd"}
-print_something()
+app = FastAPI()
+
+
+@app.get("/")
+async def root():
+    return {"message": get_message()}

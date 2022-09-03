@@ -1,11 +1,12 @@
 # #### BASE-PYTHON ####
 FROM python:3.10-slim as base-python
 
+# PYTHONPYCACHEPREFIX is used to store bytecode outside mounted directory
 # poetry will install into an isolated directory via POETRY_HOME
 # so that poetry's dependencies do not conflict
 # poetry will use VIRTUAL_ENV to check if it should install into there instead (so it does)
 ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPYCACHEPREFIX="/tmp/.cache/pycache/" \
     PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
     PIP_DEFAULT_TIMEOUT=100 \
@@ -13,6 +14,7 @@ ENV PYTHONUNBUFFERED=1 \
     POETRY_HOME="/tmp/poetry" \
     POETRY_NO_INTERACTION=1 \
     VIRTUAL_ENV="/venvs/venv"
+
 
 ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENV/bin:$PATH"
 
@@ -22,11 +24,12 @@ ENV PATH="$POETRY_HOME/bin:$VIRTUAL_ENV/bin:$PATH"
 # has poetry and non-dev python requirements installed
 FROM base-python as base-build
 
-# install poetry dependencies
+# install poetry and other dev dependencies
 RUN apt-get update \
     && apt-get install --no-install-recommends -y \
     curl \
-    build-essential
+    build-essential \
+    git
 # install poetry (with new installer)
 RUN curl -sSL https://install.python-poetry.org | python3 -
 
@@ -52,12 +55,12 @@ FROM base-build as development-image
 RUN poetry install --no-root
 
 COPY . /application_root/
-# will probably set a volume mount to /application_root/ for dev
 
 # followed by another install for the app code
 RUN poetry install --only main
 
-CMD ["/bin/bash"]
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--reload", "--host", "0.0.0.0"]
 
 
 
