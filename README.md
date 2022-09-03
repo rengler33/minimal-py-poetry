@@ -27,3 +27,15 @@ Unfortunately poetry makes that complicated because it does not give complete co
 1. if a virtual environment is activated, poetry installs there
 2. otherwise, if `POETRY_VIRTUALENVS_IN_PROJECT=true`, poetry installs to a folder inside project root called `.venv`
 3. otherwise, poetry installs to directory at `POETRY_VIRTUALENVS_PATH` and creates a slug name for the folder (sort of like "app-root-dir-name-\<some sLuGoFchArs\>-py3.x"), which is difficult to reference later
+
+## Running the example application
+
+### Development
+
+`docker compose build`
+`docker compose up`
+
+### Production
+
+`docker build . -t app`
+`docker run -it -p 0.0.0.0:8000:8000 app`

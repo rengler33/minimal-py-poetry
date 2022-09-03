@@ -91,4 +91,5 @@ COPY --from=pre-production-build /venvs /venvs
 COPY ./app /application_root/app/
 WORKDIR /application_root/app
 
-CMD ["/bin/sh"]
+EXPOSE 8000
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0"]
