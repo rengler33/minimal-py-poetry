@@ -13,6 +13,7 @@ ENV PYTHONUNBUFFERED=1 \
     PIP_DEFAULT_TIMEOUT=100 \
     POETRY_VERSION=1.2.0 \
     POETRY_HOME="/tmp/poetry" \
+    POETRY_NO_INTERACTION=1 \
     VIRTUAL_ENV="/venvs/venv"
 
 # new installer for poetry, "install-poetry.py" instead of old "get-poetry.py"
@@ -37,7 +38,7 @@ COPY ./poetry.lock ./pyproject.toml /application_root/
 # poetry therefore thinks it needs to install there instead of create new environment
 
 # install [tool.poetry.dependencies] without dev dependencies or application
-RUN poetry install --no-interaction --no-root --only main
+RUN poetry install --no-root --only main
 
 
 
@@ -46,13 +47,13 @@ FROM base-image as development-image
 
 # install all dependencies
 # --no-root installs only the dependencies, for better build caching
-RUN poetry install --no-interaction --no-root
+RUN poetry install --no-root
 
 COPY . /application_root/
 # will probably set a volume mount to /application_root/ for dev
 
 # followed by another install for the app code
-RUN poetry install --no-interaction --only main
+RUN poetry install --only main
 
 CMD ["/bin/bash"]
 
@@ -65,7 +66,7 @@ FROM base-image as pre-production-image
 # create files poetry needs to see in order "install" (symlink) the app
 RUN mkdir /application_root/app
 RUN touch /application_root/app/__init__.py && touch /application_root/README.md
-RUN poetry install --no-interaction --only main
+RUN poetry install --only main
 
 
 
