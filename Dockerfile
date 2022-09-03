@@ -8,7 +8,6 @@ FROM python:3.10 as base-python-poetry
 # poetry will use VIRTUAL_ENV to check if it should install into there instead (so it does)
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
-    PYTHONPATH=/application_root \
     PIP_NO_CACHE_DIR=off \
     PIP_DISABLE_PIP_VERSION_CHECK=on \
     PIP_DEFAULT_TIMEOUT=100 \
@@ -61,12 +60,11 @@ CMD ["/bin/bash"]
 
 # #### PRE-PRODUCTION-IMAGE #### #
 # uses poetry to install the application (the project's package)
-# NOT CLEAR IF THIS STEP IS NEEDED AT ALL, app seems to do imports fine without?
 FROM base-image as pre-production-image
 # install for app code (dependencies already installed)
-# seems to work even though code isn't copied there yet
-# but shouldn't I need to at least create the /app directory?
-# or do the app imports in code work because PYTHONPATH is set?
+# create files poetry needs to see in order "install" (symlink) the app
+RUN mkdir /application_root/app
+RUN touch /application_root/app/__init__.py && touch /application_root/README.md
 RUN poetry install --no-interaction --only main
 
 
@@ -77,9 +75,7 @@ RUN poetry install --no-interaction --only main
 FROM python:3.10-slim as production-image
 
 WORKDIR /application_root
-ENV PYTHONPATH=/application_root \
-    VIRTUAL_ENV="/venvs/venv"
-
+ENV VIRTUAL_ENV="/venvs/venv"
 # put the virtual env at front of path so it doesn't need to be activated
 ENV PATH="$VIRTUAL_ENV/bin:$PATH"
 
