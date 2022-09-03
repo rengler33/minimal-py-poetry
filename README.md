@@ -24,11 +24,15 @@ Unfortunately poetry makes that complicated because it does not give complete co
 
 ### Notes on poetry virtual env handling
 
+Poetry doesn't give total control over
+
 1. if a virtual environment is activated, poetry installs there
 2. otherwise, if `POETRY_VIRTUALENVS_IN_PROJECT=true`, poetry installs to a folder inside project root called `.venv`
 3. otherwise, poetry installs to directory at `POETRY_VIRTUALENVS_PATH` and creates a slug name for the folder (sort of like "app-root-dir-name-\<some sLuGoFchArs\>-py3.x"), which is difficult to reference later
 
-The approach used in this `Dockerfile` relies on number 1 (setting `VIRTUAL_ENV` so poetry installs there).
+The approach used in this `Dockerfile` relies on #1 (setting `VIRTUAL_ENV` so poetry installs there).
+#2 is undesirable because we're often trying to mount the application code from local machine so it can't create the virtual environment without getting overshadowed by mount. Also don't want the virtual environment to be part of the build context.
+#3 is difficult to copy to the production image from the builder stage due to the naming scheme that is not controllable.
 
 ## Running the example application
 
