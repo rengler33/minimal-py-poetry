@@ -72,7 +72,7 @@ RUN poetry install --no-interaction --only main
 # #### PRODUCTION-IMAGE #### #
 # uses a smaller version of python image and doesn't need poetry
 # instead copies venv from base-image
-FROM python:3.10-slim as production-image
+FROM python:3.10-alpine as production-image
 
 WORKDIR /application_root
 ENV VIRTUAL_ENV="/venvs/venv"
@@ -85,4 +85,4 @@ COPY --from=pre-production-image /venvs /venvs
 # copies only application code required for production
 COPY ./app /application_root/app/
 
-CMD ["/bin/bash"]
+CMD ["/bin/sh"]
