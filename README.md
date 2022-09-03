@@ -20,7 +20,7 @@ Unfortunately poetry makes that complicated because it does not give complete co
     2. poetry is available for future needs
 3. Create a production image from a pred-prod stage
     1. In a pre-prod stage, create app skeleton and install the app as a package (symlink)
-    2. Copy the virtual environment (containing only runtime dependencies) and app code to the production image
+    2. Copy ONLY the virtual environment (containing only runtime dependencies) and app code to the production image
 
 ### Notes on poetry virtual env handling
 
