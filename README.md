@@ -51,3 +51,8 @@ The approach used in this `Dockerfile` relies on #1 (setting `VIRTUAL_ENV` so po
 `docker build . -t app`
 
 `docker run -it -p 0.0.0.0:8000:8000 app`
+
+
+## Resources
+
+Relied heavily on comments in this issue https://github.com/python-poetry/poetry/discussions/1879 and articles from https://pythonspeed.com
