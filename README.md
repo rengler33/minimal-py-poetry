@@ -15,7 +15,7 @@ Unfortunately poetry makes that complicated because it does not give complete co
 1. Create a build stage (base build)
     1. Use python `venv` to create a virtual environment somewhere outside of anywhere mapped volumes might go.
     2. Poetry installs runtime deps to that virtual environment
-2. Create a separate development image from base build 
+2. Create a separate development image from base build
     1. poetry installs development dependencies to virtual environment
     2. poetry is available for future needs
 3. Create a production image from a pred-prod stage
